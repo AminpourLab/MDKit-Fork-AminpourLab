@@ -1,3 +1,10 @@
+
+# MDKit - Updated Fork
+
+## About This Repository
+
+This is a **forked version** of the original [MDKit](https://github.com/jp43/MDKit) repository, developed by Dr. Jordane Preto.
+
 # MDKit
 
 MDKit is a Python package that allows you to easily perform MD simulations with Amber.  
@@ -44,9 +51,3 @@ python setup.py install
 
 ✅ **Installation is complete!**
 
-
-# MDKit - Updated Fork
-
-## About This Repository
-
-This is a **forked version** of the original [MDKit](https://github.com/jp43/MDKit) repository, developed by Dr. Jordane Preto.
