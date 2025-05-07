@@ -1,3 +1,15 @@
+## About This Repository
+
+This is a **forked version** of the original [MDKit](https://github.com/jp43/MDKit) repository, developed by Dr. Jordane Preto.
+
+Our goal is to **modernize and expand MDKit** as part of an integrated toolkit for molecular docking and molecular dynamics simulations. This version adds:
+
+- Python 3 support
+- Compatibility with modern HPC clusters (e.g., Narval)
+- Support for Amber 22, AmberTools 23, NAMD 3, Gromacs 2024
+- Protocols for post-translational modifications (PTMs)
+- Unified CLI and TOML configuration support
+
 *****
 MDKit
 *****
