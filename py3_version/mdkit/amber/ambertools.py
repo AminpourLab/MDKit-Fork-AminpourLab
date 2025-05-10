@@ -295,12 +295,15 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
     max_net_charge = 30
     net_charge = [0]
 
+    # Normalize version to integer for compatibility logic
+    version_major = int(str(version).split('.')[0])
+
     unrecognized_atom = False
     if c and c.lower() != 'none':
         c_lower = c.lower()
         if c_lower not in supported_charge_methods:
-            raise ValueError("Charge method %s not recognized! Charge method should be one of %s" % (c_lower, ', '.join(
-                supported_charge_methods)))
+            raise ValueError("Charge method %s not recognized! Charge method should be one of %s" %
+                             (c_lower, ', '.join(supported_charge_methods)))
 
         for nc in range(max_net_charge):
             net_charge.extend([nc + 1, -(nc + 1)])
@@ -309,9 +312,9 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
             is_error = False
             is_wrong_charge = False
 
-            if version in ['14', '15']:
+            if version_major <= 15:
                 command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y &>> %(logfile)s' % locals()
-            elif version in ['16', '17']:
+            else:
                 command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y -dr no &>> %(logfile)s' % locals()
 
             log_command = 'echo "# command used: %s" > %s' % (command, logfile)
@@ -331,11 +334,10 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                 for line in lf:
                     line_s = line.split()
                     if c_lower == 'gas':
-                        if version in ['14', '15'] and 'does not equal to the total formal charge' in line:
+                        if version_major <= 15 and 'does not equal to the total formal charge' in line:
                             nc_suggested = int(float(line_s[8][1:5]))
                             is_wrong_charge = True
-                        elif version in ['16',
-                                         '17'] and 'Warning: The net charge of the molecule' in line and 'does not equal the' in line:
+                        elif version_major >= 16 and 'Warning: The net charge of the molecule' in line and 'does not equal the' in line:
                             nc_suggested = int(float(line_s[16][1:5]))
                             is_wrong_charge = True
                         if is_wrong_charge:
@@ -343,9 +345,9 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                                 return
                             break
                     elif c_lower in ['bcc', 'mul']:
-                        if version in ['14', '15'] and 'Error: cannot run' in line and 'sqm' in line:
+                        if version_major <= 15 and 'Error: cannot run' in line and 'sqm' in line:
                             is_wrong_charge = True
-                        elif version in ['16', '17'] and 'Cannot properly run' in line and 'sqm' in line:
+                        elif version_major >= 16 and 'Cannot properly run' in line and 'sqm' in line:
                             is_wrong_charge = True
                     if 'Error' in line:
                         is_error = True
@@ -359,14 +361,15 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
             raise ValueError("Error when running antechamber!")
 
     if c is None or c.lower() == 'none' or (unrecognized_atom and skip_unrecognized_atoms):
-        if version in ['14', '15']:
+        if version_major <= 15:
             command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y > %(logfile)s' % locals()
-        elif version in ['16', '17']:
+        elif version_major >= 16:
             command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y -dr no > %(logfile)s' % locals()
         else:
             raise ValueError("Unsupported AMBER version: %s" % version)
 
         utils.run_shell_command(command)
+
 
 
 def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=False, PBRadii=None, forcefield='ff14SB',
