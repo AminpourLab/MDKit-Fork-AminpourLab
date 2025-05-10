@@ -297,10 +297,16 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
         for nc in net_charge:
             is_error = False
             is_wrong_charge = False
+
             if version in ['14', '15']:
-                command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y &>> %(logfile)s'%locals()
+                command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y &>> %(logfile)s' % locals()
             elif version in ['16', '17']:
-                command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y -dr no &>> %(logfile)s'%locals()  
+                command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y -dr no &>> %(logfile)s' % locals()
+
+            log_command = 'echo "# command used: {}" > {}'.format(command, logfile)
+            utils.run_shell_command(log_command)
+            utils.run_shell_command(command)
+
         log_command = "echo \"# command used: {}\".format(command) > {}".format(logfile)
         utils.run_shell_command(log_command)
         utils.run_shell_command(command)
