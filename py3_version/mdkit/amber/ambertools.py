@@ -395,14 +395,16 @@ def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=Fals
     elif model.upper() in spc_models:
         solvent_model = 'spce'
     else:
-        raise ValueError('Solvent model %s unknown, should be one of !' % \
-                         (model, ', '.joined(tip3p_models + tip4p_models + spc_models)))
+        raise ValueError('Solvent model %s unknown, should be one of: %s' %
+                         (model, ', '.join(tip3p_models + tip4p_models + spc_models)))
 
-    if version in ['14', '15']:
+    version_major = int(str(version).split('.')[0])
+
+    if version_major <= 15:
         forcefield_lines = 'source leaprc.' + forcefield
-    elif version in ['16', '17']:
+    elif version_major >= 16:
         forcefield_lines = 'source leaprc.protein.' + forcefield
-        forcefield_lines += '\n' + 'source leaprc.water.' + solvent_model
+        forcefield_lines += '\nsource leaprc.water.' + solvent_model
     else:
         raise ValueError("Amber version %s not supported!" % version)
 
@@ -419,14 +421,17 @@ def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=Fals
             add_ions_lines += "\naddions complex Na+ %i" % nna
         if ncl > 0:
             add_ions_lines += "\naddions complex Cl- %i" % ncl
+
         suffix_ions_libraries = solvent_model
         if nna > 0 or ncl > 0:
-            ions_libraries_lines = """\nloadamberparams frcmod.ionsjc_%(suffix_ions_libraries)s
-loadamberparams frcmod.ionslm_1264_%(suffix_ions_libraries)s""" % locals()
+            ions_libraries_lines = (
+                "\nloadamberparams frcmod.ionsjc_%s\nloadamberparams frcmod.ionslm_1264_%s"
+                % (suffix_ions_libraries, suffix_ions_libraries)
+            )
     elif membrane:
-        if version in ['14', '15']:
-            sys.exit("Membrane option not implemented for Amber 14 or 15")
-        elif version in ['16', '17']:
+        if version_major <= 15:
+            sys.exit("Membrane option not implemented for Amber version <= 15")
+        elif version_major >= 16:
             forcefield_lines += '\nsource leaprc.lipid14'
             box_dx, box_dy, box_dz = utils.get_box_dimensions(file_r, mask=['WAT'])
             set_box_line = "\nset complex box { %.3f %.3f %.3f }" % (box_dx, box_dy, box_dz)
@@ -446,7 +451,7 @@ loadamberparams frcmod.ionslm_1264_%(suffix_ions_libraries)s""" % locals()
             file_l_prefix, ext = os.path.splitext(file_l)
             file_l_prefix = os.path.basename(file_l_prefix)
             name = get_ligand_name(file_l)
-            ligand_lines += "\n%(name)s = loadmol2 %(file_l)s\nloadamberparams %(file_l_prefix)s.frcmod" % locals()
+            ligand_lines += "\n%s = loadmol2 %s\nloadamberparams %s.frcmod" % (name, file_l, file_l_prefix)
         loadpdb_line = "complex = loadPdb %s" % file_rl
     else:
         loadpdb_line = "complex = loadPdb %s" % file_r
@@ -458,6 +463,7 @@ saveAmberParm complex start.prmtop start.inpcrd
 savePdb complex start.pdb
 quit\n""" % locals()
         leapf.write(script)
+
 
 
 def prepare_receptor(file_r_out, file_r, keep_hydrogens=False, membrane=False):
