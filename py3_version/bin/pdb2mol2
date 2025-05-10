@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+import os
+import sys
+import argparse
+import subprocess
+
+from mdkit.utility import mol2
+
+parser = argparse.ArgumentParser(description="Convert pdb to .mol2 using .mol2 reference file")
+parser.add_argument('-i', dest='pdbfile', required=True, help="PDB input file (1 structure)")
+parser.add_argument('-r', dest='mol2file_ref', required=True, help="mol2 file used as reference")
+parser.add_argument('-o', dest='mol2file_out', required=True, help="Output mol2 file")
+args = parser.parse_args()
+
+if not os.path.isfile(args.pdbfile):
+    raise ValueError(f".pdb file {args.pdbfile} does not exist!")
+
+if not os.path.isfile(args.mol2file_ref):
+    raise ValueError(f"Reference .mol2 file {args.mol2file_ref} does not exist!")
+
+pdbfile = args.pdbfile
+mol2file_ref = args.mol2file_ref
+mol2file_out = args.mol2file_out
+
+def get_neighbors(graph, node, data=False):
+    neighbors = []
+    visited_nodes = [node]
+    neighbors_current = [node]
+
+    is_done = False
+    while not is_done:
+        neighbors_current = [
+            nbr for n in neighbors_current
+            for nbr in graph.neighbors(n)
+            if nbr not in visited_nodes
+        ]
+        neighbors_current = list(set(neighbors_current))
+        if neighbors_current:
+            visited_nodes.extend(neighbors_current)
+            neighbors_current_noh = [
+                nbr for nbr in neighbors_current
+                if graph.nodes[nbr]['type'] not in ['H', 'h']
+            ]
+            if neighbors_current_noh:
+                if data:
+                    neighbors.append([graph.nodes[nbr]['type'] for nbr in neighbors_current_noh])
+                else:
+                    neighbors.append(neighbors_current_noh)
+        else:
+            is_done = True
+    return neighbors
+
+base, _ = os.path.splitext(pdbfile)
+base_ref, _ = os.path.splitext(mol2file_ref)
+
+mol2file_query_uniq = f"{base}_uniq_noH.mol2"
+mol2file_ref_uniq = f"{base_ref}_uniq.mol2"
+
+# make rough mol2 file from pdb with babel
+subprocess.check_output(
+    f'obabel -ipdb {pdbfile} -omol2 -O{base}.mol2 &>/dev/null',
+    shell=True,
+    executable='/bin/bash'
+)
+
+# remove hydrogens and give unique names to heavy atoms
+mol2.update_mol2file(f"{base}.mol2", mol2file_query_uniq, unique=True, remove=['H', 'h'])
+os.remove(f"{base}.mol2")
+
+# make the atoms unique for the reference structure
+mol2.update_mol2file(mol2file_ref, mol2file_ref_uniq, unique=True)
+
+G_query = mol2.get_graph(mol2file_query_uniq)
+G_ref = mol2.get_graph(mol2file_ref_uniq)
+
+query2ref = {}
+assigned_atoms_ref = []
+
+for node, attr in G_query.nodes(data=True):
+    neighbors_query = get_neighbors(G_query, node, data=True)
+    found_atom = False
+    for node_ref, attr_ref in G_ref.nodes(data=True):
+        neighbors_ref = get_neighbors(G_ref, node_ref, data=True)
+        is_same_atom = True
+        for idx, nbr_q in enumerate(neighbors_query):
+            nbr_r = neighbors_ref[idx]
+            if sorted(nbr_q) != sorted(nbr_r):
+                is_same_atom = False
+                break
+        if is_same_atom and node_ref not in assigned_atoms_ref and not found_atom:
+            query2ref[node] = node_ref
+            assigned_atoms_ref.append(node_ref)
+            found_atom = True
+    if not found_atom:
+        atomtype = G_query.nodes[node]['type']
+        raise ValueError(f"Heavy atoms involved in .pdb file are different from those in reference file! Atom type: {atomtype}")
+
+mol2f_q = mol2.Reader(mol2file_query_uniq)
+mol2f_r = mol2.Reader(mol2file_ref_uniq)
+
+struct_q = next(mol2f_q)
+struct_r = next(mol2f_r)
+
+mol2f_q.close()
+mol2f_r.close()
+
+new_struct_q = struct_q
+for idx, line_q in enumerate(struct_q['ATOM']):
+    atomidx = int(line_q[0])
+    atomidx_ref = query2ref[atomidx]
+    for line_r in struct_r['ATOM']:
+        if int(line_r[0]) == atomidx_ref:
+            new_struct_q['ATOM'][idx][1] = line_r[1]
+
+mol2.Writer().write(mol2file_query_uniq, new_struct_q)
+mol2.update_mol2file(mol2file_query_uniq, f"{base}_uniq.mol2", ADupdate=mol2file_ref_uniq, unique=True)
+mol2.arrange_hydrogens(f"{base}_uniq.mol2", mol2file_out)
+
+# remove intermediate files
+os.remove(f"{base}_uniq.mol2")
+os.remove(mol2file_ref_uniq)

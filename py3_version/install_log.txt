@@ -1,0 +1,65 @@
+running install
+/scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/setuptools/_distutils/cmd.py:90: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        By 2025-Oct-31, you need to update your project and remove deprecated calls
+        or your builds will no longer be supported.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+running build
+running build_py
+running build_scripts
+running install_lib
+creating /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit
+creating /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/reader.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/mol2.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/__init__.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/utils.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/writer.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/pdb.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+copying build/lib/mdkit/utility/babel.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility
+creating /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/namd
+copying build/lib/mdkit/namd/__init__.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/namd
+copying build/lib/mdkit/namd/namdtools.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/namd
+creating /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber
+copying build/lib/mdkit/amber/__init__.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber
+copying build/lib/mdkit/amber/minimization.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber
+copying build/lib/mdkit/amber/ambertools.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber
+copying build/lib/mdkit/__init__.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/reader.py to reader.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/mol2.py to mol2.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/__init__.py to __init__.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/utils.py to utils.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/writer.py to writer.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/pdb.py to pdb.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/utility/babel.py to babel.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/namd/__init__.py to __init__.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/namd/namdtools.py to namdtools.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber/__init__.py to __init__.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber/minimization.py to minimization.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/amber/ambertools.py to ambertools.cpython-311.pyc
+byte-compiling /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit/__init__.py to __init__.cpython-311.pyc
+running install_egg_info
+running egg_info
+writing mdkit.egg-info/PKG-INFO
+writing dependency_links to mdkit.egg-info/dependency_links.txt
+writing requirements to mdkit.egg-info/requires.txt
+writing top-level names to mdkit.egg-info/top_level.txt
+reading manifest file 'mdkit.egg-info/SOURCES.txt'
+writing manifest file 'mdkit.egg-info/SOURCES.txt'
+Copying mdkit.egg-info to /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/lib/python3.11/site-packages/mdkit-0.1.4-py3.11.egg-info
+running install_scripts
+copying build/scripts-3.11/prepare_md.py -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/bin
+copying build/scripts-3.11/pdb2mol2 -> /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/bin
+changing mode of /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/bin/prepare_md.py to 755
+changing mode of /scratch/afathi/MDKit-Fork-AminpourLab/py3_version/env/bin/pdb2mol2 to 755
