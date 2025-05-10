@@ -308,12 +308,15 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
         for nc in net_charge:
             is_error = False
             is_wrong_charge = False
+
             if version in ['14', '15']:
                 command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y &>> %(logfile)s' % locals()
             elif version in ['16', '17']:
                 command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y -dr no &>> %(logfile)s' % locals()
-            utils.run_shell_command(
-                'echo "# command used: %(command)s" > %(logfile)s' % locals())  # print command in logfile
+
+            log_command = 'echo "# command used: %s" > %s' % (command, logfile)
+            utils.run_shell_command(log_command)
+
             try:
                 utils.run_shell_command(command)
             except subprocess.CalledProcessError:
@@ -323,6 +326,7 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                             unrecognized_atom = True
                 if unrecognized_atom and skip_unrecognized_atoms:
                     break
+
             with open(logfile, 'r') as lf:
                 for line in lf:
                     line_s = line.split()
@@ -345,8 +349,9 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                             is_wrong_charge = True
                     if 'Error' in line:
                         is_error = True
-                if not is_error and not is_wrong_charge:
-                    break
+
+            if not is_error and not is_wrong_charge:
+                break
 
         if is_wrong_charge:
             raise ValueError("No appropriate net charge was found to run antechamber's %s charge method" % c)
