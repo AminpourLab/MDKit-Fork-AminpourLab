@@ -9,14 +9,16 @@ import numpy as np
 from mdkit.utility import reader
 from mdkit.utility import utils
 
+
 def get_last_solute_atom_num(filename):
     with open(filename) as pdbf:
         for line in pdbf:
             if line.startswith(('ATOM', 'HETATM')):
                 resname = line[17:20].strip()
                 if resname == 'WAT':
-                    return str(int(line[6:11].strip())-1)
+                    return str(int(line[6:11].strip()) - 1)
     return str(int(line[6:11].strip()))
+
 
 def get_nwaters(logfile):
     with open(logfile, 'r') as logf:
@@ -25,31 +27,34 @@ def get_nwaters(logfile):
             if len(line_s) == 2 and line_s[0] == 'WAT':
                 return int(line_s[1])
 
+
 def get_removed_waters(file_r, files_l, file_c, nwaters_tgt, boxsize, step=0.01, ntries=5, version='14'):
     if not files_l:
         file_c = file_r
 
     # determine the number of solute residues
-    nsolutes = int(subprocess.check_output("echo `cpptraj -p %(file_c)s -mr '*' | awk '{print NF - 1;}'`"%locals(), shell=True))
+    nsolutes = int(
+        subprocess.check_output("echo `cpptraj -p %(file_c)s -mr '*' | awk '{print NF - 1;}'`" % locals(), shell=True))
 
     print("Targeted number of water residues:", nwaters_tgt)
     print("Number of residues found for solute:", nsolutes)
 
     distance = [boxsize]
     for idx in range(ntries):
-        distance.append(boxsize + (idx+1)*step)
-        distance.append(boxsize - (idx+1)*step)
+        distance.append(boxsize + (idx + 1) * step)
+        distance.append(boxsize - (idx + 1) * step)
 
     diff_best = 1e10
     for d in distance:
         c = 1.0
         lastdiff = 1e10
         while True:
-            prepare_leap_config_file('leap.in', file_r, files_l, file_c, solvate=True, distance=d, closeness=c, version=version)
+            prepare_leap_config_file('leap.in', file_r, files_l, file_c, solvate=True, distance=d, closeness=c,
+                                     version=version)
             utils.run_shell_command('tleap -f leap.in > leap.log')
             nwaters = get_nwaters('leap.log')
             diff = nwaters - nwaters_tgt
-            #print d, c, diff, nwaters
+            # print d, c, diff, nwaters
             if diff > 0:
                 if lastdiff < 0:
                     if diff < diff_best:
@@ -59,7 +64,7 @@ def get_removed_waters(file_r, files_l, file_c, nwaters_tgt, boxsize, step=0.01,
                         nwaters_best = nwaters
                     break
                 else:
-                   lastdiff = diff
+                    lastdiff = diff
                 c += 0.01
             elif diff < 0:
                 c -= 0.01
@@ -74,10 +79,11 @@ def get_removed_waters(file_r, files_l, file_c, nwaters_tgt, boxsize, step=0.01,
             break
 
     print("Closest number of water residues found:", nwaters_best)
-    print("Removing %i water residues..."%diff_best)
+    print("Removing %i water residues..." % diff_best)
 
     removed_waters = [nsolutes + nwaters_best - diff_best + idx + 1 for idx in range(diff_best)]
     return removed_waters, dbest, cbest
+
 
 def get_solvent_mask(pdbfile, residues='WAT'):
     solvent_residues = list(map(str.strip, residues.split(',')))
@@ -96,14 +102,15 @@ def get_solvent_mask(pdbfile, residues='WAT'):
                     raise IOError("Non solvent atom detected after solvent, cannot properly build the solvent mask!")
 
     resnum_fin = resnum
-    solvent_mask = ':%s-%s'%(resnum_in, resnum_fin)
+    solvent_mask = ':%s-%s' % (resnum_in, resnum_fin)
     return solvent_mask
+
 
 def get_lipid_mask(pdbfile):
     return get_solvent_mask(pdbfile, residues='CHL,LA,MY,OL,PA,PC,PE')
 
-def get_ions_number(logfile, concentration=0.15, version='14', replace=False):
 
+def get_ions_number(logfile, concentration=0.15, version='14', replace=False):
     # Nions = Cions * Nwater * 1/55.5 where 55.5 M is the concentration of pure water
     with open(logfile, 'r') as lf:
         for line in lf:
@@ -120,7 +127,7 @@ def get_ions_number(logfile, concentration=0.15, version='14', replace=False):
                 sys.exit("get_ions_number only working with version 14 or 16 of Amber")
 
     if replace:
-        ncl = int(round(nwaters * concentration / 55.5/(1+2*concentration/55.5)))
+        ncl = int(round(nwaters * concentration / 55.5 / (1 + 2 * concentration / 55.5)))
     else:
         ncl = int(round(nwaters * concentration / 55.5))
     nna = int(ncl)
@@ -137,20 +144,20 @@ def get_ions_number(logfile, concentration=0.15, version='14', replace=False):
 
     return nna, ncl
 
-def load_PROTON_INFO():
 
+def load_PROTON_INFO():
     filename = os.path.dirname(os.path.abspath(__file__)) + '/PROTON_INFO'
     info = {}
 
     with open(filename) as ff:
-        next(ff) # skip first line
+        next(ff)  # skip first line
         for line in ff:
             line_s = line.split()
             is_residue_line = len(line_s) == 2 and line_s[1].isdigit()
             is_hydrogen_line = len(line_s) >= 4 and \
-                all([c.isdigit() for c in line_s[:4]])
+                               all([c.isdigit() for c in line_s[:4]])
             is_heavy_atom_line = not is_residue_line and \
-                not line_s[0].isdigit()
+                                 not line_s[0].isdigit()
 
             if is_residue_line:
                 resname = line_s[0]
@@ -169,6 +176,7 @@ def load_PROTON_INFO():
     info['NME'] = ['CH3', 'C', 'N', 'HT1', 'HT2', 'HT3', 'H']
     return info
 
+
 def load_atomic_ions():
     """Load formal charge libraries of monoatomic ions"""
 
@@ -186,8 +194,8 @@ def load_atomic_ions():
                 is_new_atom = False
     return info
 
-def get_ligand_name(filename):
 
+def get_ligand_name(filename):
     # finding ligand name...
     prefix, ext = os.path.splitext(filename)
 
@@ -203,13 +211,13 @@ def get_ligand_name(filename):
     name = list(set(names))
 
     if len(name) != 1:
-        raise IOError('More than one ligand found in file %s'%filename)
+        raise IOError('More than one ligand found in file %s' % filename)
     else:
         name = name[0]
     return name
 
-def correct_hydrogen_names(file_r, keep_hydrogens=False):
 
+def correct_hydrogen_names(file_r, keep_hydrogens=False):
     chainIDs = []
     atoms_info = load_PROTON_INFO()
 
@@ -223,7 +231,7 @@ def correct_hydrogen_names(file_r, keep_hydrogens=False):
     # determine which residues are first residues
     with open(file_r, 'r') as rf:
         for line in rf:
-            if line.startswith('ATOM'): # atom line
+            if line.startswith('ATOM'):  # atom line
                 resnum = line[22:27].strip()
 
                 if is_first_residue:
@@ -238,14 +246,14 @@ def correct_hydrogen_names(file_r, keep_hydrogens=False):
         with open('tmp.pdb', 'w') as wf:
             for line in rf:
                 remove_line = False
-                if line.startswith('ATOM'): # atom line
+                if line.startswith('ATOM'):  # atom line
                     resname = line[17:20].strip()
                     atom_name = line[12:16].strip()
                     chainID = line[21:22].strip()
                     resnum = line[22:27].strip()
 
                     if resname in atoms_info:
-                       # atom (if atom name starts with a digit, correct it)
+                        # atom (if atom name starts with a digit, correct it)
                         if atom_name[0].isdigit():
                             atom_name = atom_name[1:] + atom_name[0]
 
@@ -254,10 +262,10 @@ def correct_hydrogen_names(file_r, keep_hydrogens=False):
                             is_hydrogen_from_nterminal = resnum in first_residues and atom_name == 'H'
                             is_hydrogen_known = atom_name in atoms_info[resname] and not is_hydrogen_from_nterminal
                             if keep_hydrogens and not is_hydrogen_known:
-                                #print line
+                                # print line
                                 remove_line = True
                                 removed_lines.append(line)
-                                #print hydrogens_info[resname], atom_name
+                                # print hydrogens_info[resname], atom_name
                                 nremoved += 1
                             elif not keep_hydrogens:
                                 remove_line = True
@@ -272,11 +280,13 @@ def correct_hydrogen_names(file_r, keep_hydrogens=False):
 
                 if not remove_line:
                     wf.write(line)
-    #print '\n'.join(removed_lines)
+    # print '\n'.join(removed_lines)
     shutil.move('tmp.pdb', file_r)
-    #print "Number of atom lines removed: %s" %nremoved
+    # print "Number of atom lines removed: %s" %nremoved
 
-def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.log', version='14', skip_unrecognized_atoms=False):
+
+def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.log', version='14',
+                    skip_unrecognized_atoms=False):
     """ use H++ idea of running antechamber multiple times with bcc's charge method to estimate the appropriate net charge!!"""
     suffix, ext = os.path.splitext(infile)
     ext = ext[1:]
@@ -289,27 +299,22 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
     if c and c.lower() != 'none':
         c_lower = c.lower()
         if c_lower not in supported_charge_methods:
-            raise ValueError("Charge method %s not recognized! Charge method should be one of %s"%(c_lower,', '.join(supported_charge_methods)))
+            raise ValueError("Charge method %s not recognized! Charge method should be one of %s" % (c_lower, ', '.join(
+                supported_charge_methods)))
 
         for nc in range(max_net_charge):
-            net_charge.extend([nc+1,-(nc+1)])
+            net_charge.extend([nc + 1, -(nc + 1)])
 
         for nc in net_charge:
             is_error = False
             is_wrong_charge = False
-
             if version in ['14', '15']:
                 command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y &>> %(logfile)s' % locals()
             elif version in ['16', '17']:
                 command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -c %(c)s -nc %(nc)s -du y -pf y -dr no &>> %(logfile)s' % locals()
-
-            log_command = 'echo "# command used: {}" > {}'.format(command, logfile)
-            utils.run_shell_command(log_command)
-            utils.run_shell_command(command)
-
-        log_command = "echo \"# command used: {}\".format(command) > {}".format(logfile)
-        utils.run_shell_command(log_command)
-        utils.run_shell_command(command)
+            utils.run_shell_command(
+                'echo "# command used: %(command)s" > %(logfile)s' % locals())  # print command in logfile
+            try:
                 utils.run_shell_command(command)
             except subprocess.CalledProcessError:
                 with open(logfile, 'r') as lf:
@@ -317,7 +322,7 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                         if line.startswith("No Gasteiger parameter for atom"):
                             unrecognized_atom = True
                 if unrecognized_atom and skip_unrecognized_atoms:
-                    break 
+                    break
             with open(logfile, 'r') as lf:
                 for line in lf:
                     line_s = line.split()
@@ -325,7 +330,8 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                         if version in ['14', '15'] and 'does not equal to the total formal charge' in line:
                             nc_suggested = int(float(line_s[8][1:5]))
                             is_wrong_charge = True
-                        elif version in ['16', '17'] and 'Warning: The net charge of the molecule' in line and 'does not equal the' in line:
+                        elif version in ['16',
+                                         '17'] and 'Warning: The net charge of the molecule' in line and 'does not equal the' in line:
                             nc_suggested = int(float(line_s[16][1:5]))
                             is_wrong_charge = True
                         if is_wrong_charge:
@@ -343,19 +349,21 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
                     break
 
         if is_wrong_charge:
-            raise ValueError("No appropriate net charge was found to run antechamber's %s charge method"%c)
+            raise ValueError("No appropriate net charge was found to run antechamber's %s charge method" % c)
         elif is_error:
             raise ValueError("Error when running antechamber!")
 
-    if c is None or c.lower() == 'none' or (unrecognized_atom and skip_unrecognized_atoms): # do not regenerate charges
-       if version in ['14', '15']:
-           command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y > %(logfile)s'%locals()
-       elif version in ['16', '17']:
-           command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y -dr no > %(logfile)s'%locals()
-       utils.run_shell_command(command)
+    if c is None or c.lower() == 'none' or (unrecognized_atom and skip_unrecognized_atoms):  # do not regenerate charges
+        if version in ['14', '15']:
+            command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y > %(logfile)s' % locals()
+        elif version in ['16', '17']:
+            command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y -dr no > %(logfile)s' % locals()
+        utils.run_shell_command(command)
 
-def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=False, PBRadii=None, forcefield='ff14SB', nna=0, ncl=0, box='parallelepiped', distance=10.0, closeness=1.0, model='TIP3P', version='14', membrane=False, removed_waters=None):
- 
+
+def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=False, PBRadii=None, forcefield='ff14SB',
+                             nna=0, ncl=0, box='parallelepiped', distance=10.0, closeness=1.0, model='TIP3P',
+                             version='14', membrane=False, removed_waters=None):
     solvation_line = ""
     pbradii_lines = ""
     add_ions_lines = ""
@@ -363,7 +371,7 @@ def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=Fals
     ions_libraries_lines = ""
     loadpdb_line = ""
     remove_water_lines = ""
-    set_box_line = "" # used when membrane is True
+    set_box_line = ""  # used when membrane is True
 
     tip3p_models = ['TIP3P', 'TIP3PF', 'POL3', 'QSPCFW']
     tip4p_models = ['TIP4P', 'TIP4PEW']
@@ -376,49 +384,48 @@ def prepare_leap_config_file(script_name, file_r, files_l, file_rl, solvate=Fals
     elif model.upper() in spc_models:
         solvent_model = 'spce'
     else:
-        raise ValueError('Solvent model %s unknown, should be one of !'% \
-(model,', '.joined(tip3p_models + tip4p_models + spc_models)))
-
+        raise ValueError('Solvent model %s unknown, should be one of !' % \
+                         (model, ', '.joined(tip3p_models + tip4p_models + spc_models)))
 
     if version in ['14', '15']:
-        forcefield_lines = 'source leaprc.' + forcefield 
+        forcefield_lines = 'source leaprc.' + forcefield
     elif version in ['16', '17']:
         forcefield_lines = 'source leaprc.protein.' + forcefield
         forcefield_lines += '\n' + 'source leaprc.water.' + solvent_model
     else:
-        raise ValueError("Amber version %s not supported!"%version)
+        raise ValueError("Amber version %s not supported!" % version)
 
     if solvate:
         boxtype = model.upper() + 'BOX'
         if box.lower() == 'parallelepiped':
-            solvation_line = "\nSolvateBox complex %s %.2f %.2f"%(boxtype,distance,closeness)
+            solvation_line = "\nSolvateBox complex %s %.2f %.2f" % (boxtype, distance, closeness)
         elif box.lower() == 'octahedron':
-            solvation_line = "\nSolvateOct complex %s %.2f %.2f"%(boxtype,distance,closeness)
+            solvation_line = "\nSolvateOct complex %s %.2f %.2f" % (boxtype, distance, closeness)
         else:
-            raise ValueError('Box type %s not recognized'%box) 
+            raise ValueError('Box type %s not recognized' % box)
 
         if nna > 0:
-            add_ions_lines += "\naddions complex Na+ %i"%nna
+            add_ions_lines += "\naddions complex Na+ %i" % nna
         if ncl > 0:
-            add_ions_lines += "\naddions complex Cl- %i"%ncl
+            add_ions_lines += "\naddions complex Cl- %i" % ncl
         suffix_ions_libraries = solvent_model
-        if nna > 0 or ncl > 0: 
+        if nna > 0 or ncl > 0:
             ions_libraries_lines = """\nloadamberparams frcmod.ionsjc_%(suffix_ions_libraries)s
-loadamberparams frcmod.ionslm_1264_%(suffix_ions_libraries)s"""%locals()
+loadamberparams frcmod.ionslm_1264_%(suffix_ions_libraries)s""" % locals()
     elif membrane:
         if version in ['14', '15']:
             sys.exit("Membrane option not implemented for Amber 14 or 15")
         elif version in ['16', '17']:
             forcefield_lines += '\nsource leaprc.lipid14'
             box_dx, box_dy, box_dz = utils.get_box_dimensions(file_r, mask=['WAT'])
-            set_box_line = "\nset complex box { %.3f %.3f %.3f }"%(box_dx, box_dy, box_dz)
+            set_box_line = "\nset complex box { %.3f %.3f %.3f }" % (box_dx, box_dy, box_dz)
 
     if PBRadii:
-        pbradii_lines = "\nset default PBRadii %s"%PBRadii
+        pbradii_lines = "\nset default PBRadii %s" % PBRadii
 
     if removed_waters is not None:
         for idx in removed_waters:
-            remove_water_lines += "\nremove complex complex.%i"%idx
+            remove_water_lines += "\nremove complex complex.%i" % idx
 
     if files_l:
         forcefield_lines += '\nsource leaprc.gaff'
@@ -428,21 +435,21 @@ loadamberparams frcmod.ionslm_1264_%(suffix_ions_libraries)s"""%locals()
             file_l_prefix, ext = os.path.splitext(file_l)
             file_l_prefix = os.path.basename(file_l_prefix)
             name = get_ligand_name(file_l)
-            ligand_lines += "\n%(name)s = loadmol2 %(file_l)s\nloadamberparams %(file_l_prefix)s.frcmod"%locals()
-        loadpdb_line = "complex = loadPdb %s"%file_rl
+            ligand_lines += "\n%(name)s = loadmol2 %(file_l)s\nloadamberparams %(file_l_prefix)s.frcmod" % locals()
+        loadpdb_line = "complex = loadPdb %s" % file_rl
     else:
-        loadpdb_line = "complex = loadPdb %s"%file_r
+        loadpdb_line = "complex = loadPdb %s" % file_r
 
     with open(script_name, 'w') as leapf:
-        script ="""%(forcefield_lines)s%(ions_libraries_lines)s%(ligand_lines)s%(pbradii_lines)s
+        script = """%(forcefield_lines)s%(ions_libraries_lines)s%(ligand_lines)s%(pbradii_lines)s
 %(loadpdb_line)s%(solvation_line)s%(add_ions_lines)s%(set_box_line)s%(remove_water_lines)s
 saveAmberParm complex start.prmtop start.inpcrd
 savePdb complex start.pdb
-quit\n"""%locals()
+quit\n""" % locals()
         leapf.write(script)
 
-def prepare_receptor(file_r_out, file_r, keep_hydrogens=False, membrane=False):
 
+def prepare_receptor(file_r_out, file_r, keep_hydrogens=False, membrane=False):
     # only keep atom lines
     with open(file_r, 'r') as tmpf:
         with open(file_r_out, 'w') as recf:
@@ -460,8 +467,8 @@ def prepare_receptor(file_r_out, file_r, keep_hydrogens=False, membrane=False):
     # remove atoms and hydrogen with no name recognized by AMBER
     correct_hydrogen_names(file_r_out, keep_hydrogens=keep_hydrogens)
 
-def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', skip_unrecognized_atoms=False):
 
+def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', skip_unrecognized_atoms=False):
     if isinstance(files_l, str):
         files_l = [files_l]
 
@@ -472,14 +479,17 @@ def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', 
         file_l_prefix = os.path.basename(file_l_prefix)
 
         mol2file = file_l_prefix + '.mol2'
-        run_antechamber(file_l, 'tmp.mol2', at='gaff', c=charge_method, version=version, skip_unrecognized_atoms=skip_unrecognized_atoms)
+        run_antechamber(file_l, 'tmp.mol2', at='gaff', c=charge_method, version=version,
+                        skip_unrecognized_atoms=skip_unrecognized_atoms)
 
         shutil.move('tmp.mol2', mol2file)
-        utils.run_shell_command('parmchk -i %s -f mol2 -o %s.frcmod'%(mol2file, file_l_prefix))
+        utils.run_shell_command('parmchk -i %s -f mol2 -o %s.frcmod' % (mol2file, file_l_prefix))
         if version in ['14', '15']:
-            utils.run_shell_command('antechamber -i %s -fi mol2 -o %s.pdb -fo pdb &> /dev/null'%(mol2file, file_l_prefix))
+            utils.run_shell_command(
+                'antechamber -i %s -fi mol2 -o %s.pdb -fo pdb &> /dev/null' % (mol2file, file_l_prefix))
         elif version in ['16', '17']:
-            utils.run_shell_command('antechamber -i %s -fi mol2 -o %s.pdb -fo pdb -dr no &> /dev/null'%(mol2file, file_l_prefix))
+            utils.run_shell_command(
+                'antechamber -i %s -fi mol2 -o %s.pdb -fo pdb -dr no &> /dev/null' % (mol2file, file_l_prefix))
 
         mol2files_l.append(mol2file)
         with open(file_rl, 'a') as ffrl:
@@ -489,6 +499,7 @@ def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', 
                         ffrl.write(line)
             ffrl.write('TER\n')
     return mol2files_l
+
 
 def charmmlipid2amber(filename):
     """Convert charmm PDB file to Amber format"""
@@ -501,31 +512,31 @@ def charmmlipid2amber(filename):
         # Hard coded into here. This has to be changed if the data file is moved.
         convert_filename = "%s/dat/charmmlipid2amber/charmmlipid2amber.csv" % (amberhome)
 
-    input_file  = open(filename, 'r') # File to be processed
-    input_file_list = [] # File to be processed as a list
+    input_file = open(filename, 'r')  # File to be processed
+    input_file_list = []  # File to be processed as a list
     for line in input_file:
         input_file_list.append(line)
     input_file.close()
 
     # Process residues
-    residue_list = [] # List of residue numbers
-    residue_start = [] # List of lines where residues start. Line numbers start at 1.
-    residue_end = [] # List of lines where residues end, including TER card if present. Line numbers start at 1.
+    residue_list = []  # List of residue numbers
+    residue_start = []  # List of lines where residues start. Line numbers start at 1.
+    residue_end = []  # List of lines where residues end, including TER card if present. Line numbers start at 1.
     it0 = 1
-    previous_residue = "" # Residue number of the previous line (including TER card). Set to "" if it is not an ATOM record or TER card.
-    current_residue = "" # Residue number of the current line (including TER card). Set to "" if it is not an ATOM record or TER card.
+    previous_residue = ""  # Residue number of the previous line (including TER card). Set to "" if it is not an ATOM record or TER card.
+    current_residue = ""  # Residue number of the current line (including TER card). Set to "" if it is not an ATOM record or TER card.
     # Split file into residues by checking columns 23-27 (<99999 residues):
     # First line:
     if (input_file_list[0][0:6] == "ATOM  " or
-        input_file_list[0][0:6] == "HETATM"):
+            input_file_list[0][0:6] == "HETATM"):
         residue_list.append(input_file_list[0][22:27])
         residue_start.append(it0)
-        previous_residue = input_file_list[0][22:27] 
+        previous_residue = input_file_list[0][22:27]
     elif line[0:3] == "TER":
         previous_residue = ""
     else:
         previous_residue = ""
-    it0+=1
+    it0 += 1
     # Rest of lines:
     for line in input_file_list[1:]:
         if line[0:6] == "ATOM  " or line[0:6] == "HETATM":
@@ -542,32 +553,32 @@ def charmmlipid2amber(filename):
                 previous_residue = current_residue
             # Current line is not an ATOM or TER:
             elif current_residue == "":
-                residue_end.append(it0-1)
+                residue_end.append(it0 - 1)
                 previous_residue = current_residue
             # Previous and current line are ATOM or TER:
             else:
                 residue_list.append(current_residue)
                 residue_start.append(it0)
-                residue_end.append(it0-1)
+                residue_end.append(it0 - 1)
                 previous_residue = current_residue
-        it0+=1
+        it0 += 1
     # If the last residue is not closed, define the end:
     if current_residue != "":
-        residue_end.append(it0-1)
+        residue_end.append(it0 - 1)
 
     # Process substition dictionaries
     try:
-        csv_file = open(convert_filename, 'r') # csv file with all substitutions
+        csv_file = open(convert_filename, 'r')  # csv file with all substitutions
     except IOError as err:
         print("Error: ", str(err))
         sys.exit(1)
     # Skip header line of csv file. Line 2 contains dictionary keys:
     csv_file.readline()
-    csv_file_reader = csv.DictReader(csv_file) # Dictionary csv reader
-    replace_dict = {} # Dictionary of atom name and residue name search and replace
-    order_dict = {} # Dictionary of atom name and residue name order
-    ter_dict = {} # Dictionary of whether residue should have a TER card based on atom name and residue name. All atom name and residue name in a residue with a TER card will return True.
-    num_atom_dict = {} # Dictionary of number of atoms in current residue for the search string
+    csv_file_reader = csv.DictReader(csv_file)  # Dictionary csv reader
+    replace_dict = {}  # Dictionary of atom name and residue name search and replace
+    order_dict = {}  # Dictionary of atom name and residue name order
+    ter_dict = {}  # Dictionary of whether residue should have a TER card based on atom name and residue name. All atom name and residue name in a residue with a TER card will return True.
+    num_atom_dict = {}  # Dictionary of number of atoms in current residue for the search string
     for line in csv_file_reader:
         replace_dict[line["search"]] = line["replace"]
         order_dict[line["search"]] = int(line["order"])
@@ -581,13 +592,13 @@ def charmmlipid2amber(filename):
     # 17:      alternate location indicator
     # 18-20: residue name
     # 21:      sometimes used for the residue name
-    output_file_list = [] # File to be written in list form (after processing)
-    residue_substituted = False # For error checking. True if a substitution occurs.
+    output_file_list = []  # File to be written in list form (after processing)
+    residue_substituted = False  # For error checking. True if a substitution occurs.
     for it1 in range(0, len(residue_list)):
         # residue_start and residue_end indices start at 1. 
         # input_file_list indices start at 0.
-        input_residue = input_file_list[residue_start[it1]-1:
-            residue_end[it1]]
+        input_residue = input_file_list[residue_start[it1] - 1:
+                                        residue_end[it1]]
         output_residue = []
         # Process residue only if first atom is in the replacement dictionary:
         if input_residue[0][12:21] in replace_dict:
@@ -598,18 +609,19 @@ def charmmlipid2amber(filename):
             for line in input_residue:
                 if line[0:3] == "TER":
                     n_TER_cards += 1
-            if len(input_residue)-n_TER_cards != num_atom_dict[input_residue[0][12:21]]:
-                print("Error: Number of atoms in residue does not match number of atoms in residue in replacement data file")
+            if len(input_residue) - n_TER_cards != num_atom_dict[input_residue[0][12:21]]:
+                print(
+                    "Error: Number of atoms in residue does not match number of atoms in residue in replacement data file")
                 sys.exit(1)
-            output_residue = len(input_residue)*[0]
+            output_residue = len(input_residue) * [0]
             for it2 in range(0, len(input_residue)):
                 line = input_residue[it2]
                 if line[0:3] != "TER":
-                     search = line[12:21]
-                     output_residue[order_dict[search]] = re.sub(search, 
-                        replace_dict[search], line)
+                    search = line[12:21]
+                    output_residue[order_dict[search]] = re.sub(search,
+                                                                replace_dict[search], line)
                 else:
-                     output_residue[it2] = "TER   \n"
+                    output_residue[it2] = "TER   \n"
             if ter_dict[input_residue[0][12:21]] == True:
                 if input_residue[-1][0:3] != "TER":
                     output_residue.append("TER   \n")
@@ -631,7 +643,7 @@ def charmmlipid2amber(filename):
             resname = line[17:20].strip()
             resnum = int(line[22:27])
             if resname != resname_last or resnum != resnum_last:
-                resum_new = (resum_new+1)%100000
+                resum_new = (resum_new + 1) % 100000
             # (1) Add TER lines if needed
             if (resnum_last > resnum) or (resname == 'WAT' and atomname == 'O') or atomname in ['Na+', 'Cl-', 'K+']:
                 new_output_file_list.append('TER\n')
@@ -649,9 +661,9 @@ def charmmlipid2amber(filename):
             resnum_last = resnum
             resum_new_str = str(resum_new)
             if len(resum_new_str) <= 4:
-                resum_new_str = (4-len(str(resum_new)))*' ' + resum_new_str + ' '
+                resum_new_str = (4 - len(str(resum_new))) * ' ' + resum_new_str + ' '
             elif len(resum_new_str) == 5:
-                resum_new_str = (5-len(str(resum_new)))*' ' + resum_new_str
+                resum_new_str = (5 - len(str(resum_new))) * ' ' + resum_new_str
             else:
                 raise Exception("Something went wrong!")
             line_new = line[:12] + atomname_new + line[16:17] + resname_new + line[20:22] + resum_new_str + line[27:]
@@ -668,7 +680,7 @@ def charmmlipid2amber(filename):
 
     # Write output
     try:
-        output_file = open(filename, 'w') # File to be written
+        output_file = open(filename, 'w')  # File to be written
     except IOError as err:
         print("Error: ", str(err))
         sys.exit(1)
