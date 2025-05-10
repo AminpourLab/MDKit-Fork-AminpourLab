@@ -358,12 +358,13 @@ def run_antechamber(infile, outfile, at='gaff', c='gas', logfile='antechamber.lo
         elif is_error:
             raise ValueError("Error when running antechamber!")
 
-    # Final case: skip charge generation
     if c is None or c.lower() == 'none' or (unrecognized_atom and skip_unrecognized_atoms):
         if version in ['14', '15']:
             command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y > %(logfile)s' % locals()
         elif version in ['16', '17']:
             command = 'antechamber -i %(infile)s -fi %(ext)s -o %(outfile)s -fo mol2 -at %(at)s -du y -pf y -dr no > %(logfile)s' % locals()
+
+        # Make sure this is aligned with the `if` above, not inside it
         utils.run_shell_command(command)
 
 
