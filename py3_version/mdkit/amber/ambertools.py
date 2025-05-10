@@ -489,6 +489,9 @@ def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', 
     if isinstance(files_l, str):
         files_l = [files_l]
 
+    # Extract major version number from version string
+    version_major = int(str(version).split('.')[0])
+
     mol2files_l = []
     shutil.copyfile(file_r, file_rl)
     for file_l in files_l:
@@ -501,12 +504,15 @@ def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', 
 
         shutil.move('tmp.mol2', mol2file)
         utils.run_shell_command('parmchk -i %s -f mol2 -o %s.frcmod' % (mol2file, file_l_prefix))
-        if version in ['14', '15']:
+
+        if version_major <= 15:
             utils.run_shell_command(
                 'antechamber -i %s -fi mol2 -o %s.pdb -fo pdb &> /dev/null' % (mol2file, file_l_prefix))
-        elif version in ['16', '17']:
+        elif version_major >= 16:
             utils.run_shell_command(
                 'antechamber -i %s -fi mol2 -o %s.pdb -fo pdb -dr no &> /dev/null' % (mol2file, file_l_prefix))
+        else:
+            raise ValueError("Unsupported Amber version: %s" % version)
 
         mol2files_l.append(mol2file)
         with open(file_rl, 'a') as ffrl:
@@ -516,6 +522,7 @@ def prepare_ligand(file_r, files_l, file_rl, charge_method='gas', version='14', 
                         ffrl.write(line)
             ffrl.write('TER\n')
     return mol2files_l
+
 
 
 def charmmlipid2amber(filename):
